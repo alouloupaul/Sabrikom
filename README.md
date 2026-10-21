@@ -75,3 +75,15 @@ ng serve
 | `Jwt__Key` | Clé secrète JWT (min 32 chars) |
 | `App__BaseUrl` | URL de base de l'API |
 | `App__FrontendUrl` | URL du frontend (CORS) |
+
+## Tests backend
+
+```bash
+dotnet test tests/Sabrikom.API.Tests/Sabrikom.API.Tests.csproj
+```
+
+Les tests ciblent la rotation/révocation des refresh tokens, la visibilité et les
+droits de modification des annonces, ainsi que l’isolation des conversations et
+les compteurs de messages non lus. Chaque test utilise une base SQLite en mémoire
+isolée, sans serveur MySQL. Ils exercent les contrôleurs et la persistance EF Core,
+pas le pipeline HTTP/JWT ni les spécificités du fournisseur MySQL.
