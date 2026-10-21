@@ -91,6 +91,9 @@
     "forgot_password": "Mot de passe oublié ?"
   },
   "search": {
+    "reset": "Réinitialiser",
+    "error": "Impossible de charger les annonces. Veuillez réessayer.",
+    "retry": "Réessayer",
     "title": "Résultats de recherche",
     "filters": "Filtres",
     "sort_by": "Trier par",
