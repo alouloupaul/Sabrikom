@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { CommonModule } from '@angular/common';
@@ -88,7 +89,7 @@ import { Listing, Category, Brand, VehicleModel, PagedResult } from '../../core/
             🔍 {{ 'home.search_btn' | translate }}
           </button>
           <button class="btn btn-secondary" style="width:100%; margin-top:0.5rem" (click)="resetFilters()">
-            ✕ Reset
+            ✕ {{ 'search.reset' | translate }}
           </button>
         </aside>
 
@@ -97,9 +98,9 @@ import { Listing, Category, Brand, VehicleModel, PagedResult } from '../../core/
           <div class="results-header">
             <div>
               <h2>{{ 'search.title' | translate }}</h2>
-              @if (!loading()) {
+              @if (!loading() && !error()) {
                 <p class="results-count">
-                  {{ result()?.totalCount || 0 }} {{ 'search.results_count' | translate }}
+                  {{ 'search.results_count' | translate:{ count: result()?.totalCount || 0 } }}
                 </p>
               }
             </div>
@@ -125,6 +126,11 @@ import { Listing, Category, Brand, VehicleModel, PagedResult } from '../../core/
 
           @if (loading()) {
             <div class="loading-center"><div class="spinner"></div></div>
+          } @else if (error()) {
+            <div class="alert alert-error" role="alert">
+              <p>{{ 'search.error' | translate }}</p>
+              <button class="btn btn-secondary" (click)="loadResults()">{{ 'search.retry' | translate }}</button>
+            </div>
           } @else if (result()?.items?.length === 0) {
             <div class="no-results">
               <p>{{ 'search.no_results' | translate }}</p>
@@ -222,7 +228,7 @@ import { Listing, Category, Brand, VehicleModel, PagedResult } from '../../core/
     }
   `]
 })
-export class SearchComponent implements OnInit {
+export class SearchComponent implements OnInit, OnDestroy {
   private listingService = inject(ListingService);
   private catalogService = inject(CatalogService);
   private route = inject(ActivatedRoute);
@@ -234,6 +240,9 @@ export class SearchComponent implements OnInit {
   brands = signal<Brand[]>([]);
   models = signal<VehicleModel[]>([]);
   loading = signal(true);
+  error = signal(false);
+  private routeSubscription?: Subscription;
+  private searchSubscription?: Subscription;
   currentYear = new Date().getFullYear();
 
   params: any = { page: 1, pageSize: 12, sortBy: 'date_desc' };
@@ -242,13 +251,18 @@ export class SearchComponent implements OnInit {
     this.catalogService.getCategories().subscribe(c => this.categories.set(c));
     this.catalogService.getBrands().subscribe(b => this.brands.set(b));
 
-    this.route.queryParams.subscribe(qp => {
-      this.params = { page: 1, pageSize: 12, sortBy: 'date_desc', ...qp };
+    this.routeSubscription = this.route.queryParams.subscribe(qp => {
+      this.params = { pageSize: 12, sortBy: 'date_desc', ...qp, page: Math.max(1, Math.floor(Number(qp['page'])) || 1) };
       if (this.params.brandId) {
         this.catalogService.getModels(+this.params.brandId).subscribe(m => this.models.set(m));
       }
       this.loadResults();
     });
+  }
+
+  ngOnDestroy() {
+    this.routeSubscription?.unsubscribe();
+    this.searchSubscription?.unsubscribe();
   }
 
   onBrandChange() {
@@ -261,18 +275,18 @@ export class SearchComponent implements OnInit {
 
   applyFilters() {
     this.params.page = 1;
-    this.router.navigate([], { queryParams: this.cleanParams(), replaceUrl: true });
+    this.router.navigate([], { queryParams: this.cleanParams() });
   }
 
   resetFilters() {
     this.params = { page: 1, pageSize: 12, sortBy: 'date_desc' };
     this.models.set([]);
-    this.loadResults();
+    this.router.navigate([], { queryParams: {} });
   }
 
   goPage(p: number) {
     this.params.page = p;
-    this.loadResults();
+    this.router.navigate([], { queryParams: this.cleanParams() });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -284,11 +298,20 @@ export class SearchComponent implements OnInit {
     return Array.from({ length: end - start + 1 }, (_, i) => start + i);
   }
 
-  private loadResults() {
+  loadResults() {
+    this.searchSubscription?.unsubscribe();
     this.loading.set(true);
-    this.listingService.search(this.cleanParams()).subscribe(r => {
-      this.result.set(r);
-      this.loading.set(false);
+    this.error.set(false);
+    this.searchSubscription = this.listingService.search(this.cleanParams()).subscribe({
+      next: r => {
+        this.result.set(r);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.result.set(null);
+        this.error.set(true);
+        this.loading.set(false);
+      }
     });
   }
 
