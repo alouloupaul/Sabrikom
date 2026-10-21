@@ -1,29 +1,40 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { TranslateService } from '@ngx-translate/core';
 import { AppComponent } from './app.component';
+import { appConfig } from './app.config';
+import { LangService } from './core/services/lang.service';
 
-describe('AppComponent', () => {
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
+describe('AppComponent translations', () => {
+  let http: HttpTestingController;
+  let translate: TranslateService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
       imports: [AppComponent],
-    }).compileComponents();
+      providers: [
+        ...appConfig.providers,
+        provideHttpClientTesting(),
+        { provide: LangService, useValue: { init: () => {}, currentLang: signal('ar') } }
+      ]
+    });
+    http = TestBed.inject(HttpTestingController);
+    translate = TestBed.inject(TranslateService);
+    http.expectOne('/i18n/ar.json').flush({ app: { name: 'صابريكم' } });
   });
 
-  it('should create the app', () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.componentInstance;
-    expect(app).toBeTruthy();
-  });
+  afterEach(() => http.verify());
 
-  it(`should have the 'frontend' title`, () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.componentInstance;
-    expect(app.title).toEqual('frontend');
-  });
-
-  it('should render title', () => {
+  it('renders the translated brand in the real app shell', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, frontend');
+    expect(fixture.nativeElement.querySelector('.brand-name').textContent).toBe('صابريكم');
+  });
+
+  it('loads French through the configured HTTP loader', () => {
+    translate.use('fr').subscribe();
+    http.expectOne('/i18n/fr.json').flush({ nav: { search: 'Rechercher' } });
+    expect(translate.instant('nav.search')).toBe('Rechercher');
   });
 });
