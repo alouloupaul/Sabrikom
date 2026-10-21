@@ -11,13 +11,13 @@ export const routes: Routes = [
     loadComponent: () => import('./features/search/search.component').then(m => m.SearchComponent)
   },
   {
-    path: 'listings/:id',
-    loadComponent: () => import('./features/listing-detail/listing-detail.component').then(m => m.ListingDetailComponent)
-  },
-  {
     path: 'listings/new',
     loadComponent: () => import('./features/listing-form/listing-form.component').then(m => m.ListingFormComponent),
     canActivate: [sellerGuard]
+  },
+  {
+    path: 'listings/:id',
+    loadComponent: () => import('./features/listing-detail/listing-detail.component').then(m => m.ListingDetailComponent)
   },
   {
     path: 'listings/:id/edit',
