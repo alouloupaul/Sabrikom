@@ -24,3 +24,7 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Tests
+tests/**/bin/
+tests/**/obj/
