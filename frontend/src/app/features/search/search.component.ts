@@ -88,7 +88,7 @@ import { Listing, Category, Brand, VehicleModel, PagedResult } from '../../core/
             🔍 {{ 'home.search_btn' | translate }}
           </button>
           <button class="btn btn-secondary" style="width:100%; margin-top:0.5rem" (click)="resetFilters()">
-            ✕ Reset
+            ✕ {{ 'search.reset' | translate }}
           </button>
         </aside>
 
@@ -97,7 +97,7 @@ import { Listing, Category, Brand, VehicleModel, PagedResult } from '../../core/
           <div class="results-header">
             <div>
               <h2>{{ 'search.title' | translate }}</h2>
-              @if (!loading()) {
+              @if (!loading() && !error()) {
                 <p class="results-count">
                   {{ result()?.totalCount || 0 }} {{ 'search.results_count' | translate }}
                 </p>
@@ -125,6 +125,11 @@ import { Listing, Category, Brand, VehicleModel, PagedResult } from '../../core/
 
           @if (loading()) {
             <div class="loading-center"><div class="spinner"></div></div>
+          } @else if (error()) {
+            <div class="empty-state" role="alert">
+              <p>{{ 'common.error' | translate }}</p>
+              <button class="btn btn-primary" (click)="loadResults()">{{ 'common.retry' | translate }}</button>
+            </div>
           } @else if (result()?.items?.length === 0) {
             <div class="no-results">
               <p>{{ 'search.no_results' | translate }}</p>
@@ -234,6 +239,7 @@ export class SearchComponent implements OnInit {
   brands = signal<Brand[]>([]);
   models = signal<VehicleModel[]>([]);
   loading = signal(true);
+  error = signal(false);
   currentYear = new Date().getFullYear();
 
   params: any = { page: 1, pageSize: 12, sortBy: 'date_desc' };
@@ -244,6 +250,8 @@ export class SearchComponent implements OnInit {
 
     this.route.queryParams.subscribe(qp => {
       this.params = { page: 1, pageSize: 12, sortBy: 'date_desc', ...qp };
+      this.params.page = Math.max(1, Math.floor(Number(qp['page'])) || 1);
+      this.models.set([]);
       if (this.params.brandId) {
         this.catalogService.getModels(+this.params.brandId).subscribe(m => this.models.set(m));
       }
@@ -267,12 +275,12 @@ export class SearchComponent implements OnInit {
   resetFilters() {
     this.params = { page: 1, pageSize: 12, sortBy: 'date_desc' };
     this.models.set([]);
-    this.loadResults();
+    this.router.navigate([], { queryParams: this.cleanParams(), replaceUrl: true });
   }
 
   goPage(p: number) {
     this.params.page = p;
-    this.loadResults();
+    this.router.navigate([], { queryParams: this.cleanParams() });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -284,11 +292,19 @@ export class SearchComponent implements OnInit {
     return Array.from({ length: end - start + 1 }, (_, i) => start + i);
   }
 
-  private loadResults() {
+  loadResults() {
     this.loading.set(true);
-    this.listingService.search(this.cleanParams()).subscribe(r => {
-      this.result.set(r);
-      this.loading.set(false);
+    this.error.set(false);
+    this.listingService.search(this.cleanParams()).subscribe({
+      next: r => {
+        this.result.set(r);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.result.set(null);
+        this.error.set(true);
+        this.loading.set(false);
+      }
     });
   }
 
