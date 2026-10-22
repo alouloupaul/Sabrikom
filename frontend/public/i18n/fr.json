@@ -91,6 +91,7 @@
     "forgot_password": "Mot de passe oublié ?"
   },
   "search": {
+    "reset": "Réinitialiser",
     "title": "Résultats de recherche",
     "filters": "Filtres",
     "sort_by": "Trier par",
@@ -144,6 +145,7 @@
     "total_messages": "Messages"
   },
   "common": {
+    "retry": "Réessayer",
     "loading": "Chargement...",
     "error": "Une erreur est survenue",
     "save": "Enregistrer",

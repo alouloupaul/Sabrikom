@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "ports": {
+    "preview": 4200
+  },
+  "scripts": {
+    "setup": {
+      "enabled": true,
+      "command": "cd frontend && npm ci --legacy-peer-deps --no-audit --no-fund"
+    },
+    "run": {
+      "enabled": true,
+      "command": "cd frontend && npm run start -- --host 0.0.0.0"
+    }
+  }
+}
