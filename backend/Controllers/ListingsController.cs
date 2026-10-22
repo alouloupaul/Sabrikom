@@ -217,7 +217,7 @@ public class ListingsController : ControllerBase
     public async Task<IActionResult> Delete(int id)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var userRole = User.FindFirstValue("role");
+        var userRole = User.FindFirstValue(ClaimTypes.Role);
         var listing = await _db.Listings.Include(l => l.Photos).FirstOrDefaultAsync(l => l.Id == id);
 
         if (listing == null) return NotFound();
@@ -298,7 +298,7 @@ public class ListingsController : ControllerBase
     [HttpPost("{id}/validate")]
     public async Task<ActionResult<ListingDto>> Validate(int id, [FromBody] ListingValidateDto dto)
     {
-        var userRole = User.FindFirstValue("role");
+        var userRole = User.FindFirstValue(ClaimTypes.Role);
         if (userRole != "Admin") return Forbid();
 
         var adminId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
@@ -324,7 +324,7 @@ public class ListingsController : ControllerBase
     [HttpGet("admin/all")]
     public async Task<ActionResult<PagedResult<ListingDto>>> AdminGetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? status = null)
     {
-        var userRole = User.FindFirstValue("role");
+        var userRole = User.FindFirstValue(ClaimTypes.Role);
         if (userRole != "Admin") return Forbid();
 
         var query = _db.Listings
